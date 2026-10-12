@@ -193,6 +193,7 @@
           <span class="spin">&#8635;</span> <span class="btnlabel">Refresh</span>
         </button>
         <div class="asof" id="asOf">Data as of &hellip;</div>
+        <div class="asof" id="windowRange">Window: &hellip;</div>
         <div class="refresh-toast" id="refreshToast"></div>
       </div>
     </div>
@@ -465,7 +466,7 @@
   function renderRecentTable(){
     document.getElementById('recentCount').textContent = recentData.length;
     const qualCount = recentData.filter(a=>a.isQualifying).length;
-    document.getElementById('recentSub').textContent = `uploaded to the creative library in the last ${meta.recentUploadWindowDays} days`;
+    document.getElementById('recentSub').innerHTML = `uploaded to the creative library in the last ${meta.recentUploadWindowDays} days (<b>${fmtLongDate(meta.recentUploadWindow.start)} &ndash; ${fmtLongDate(meta.recentUploadWindow.end)}</b>)`;
     document.getElementById('recentNote').innerHTML = `Upload date is when the file entered Axon's library, not necessarily when a campaign started serving it. <b>${qualCount}</b> of these have already crossed the 5%-for-3-days bar above and show their live status; the rest are still below it (or too new to say), with their current window spend and last-3-day share shown as-is. Grouped by game, newest upload first &mdash; both the game groups and the rows inside each are ordered that way.`;
 
     // Group by game (a creative's game comes from its highest-spending campaign;
@@ -609,6 +610,7 @@
     ]);
     data = dataRes; recentData = recentRes; meta = metaRes;
     document.getElementById('asOf').innerHTML = `Data as of <b>${timeAgo(meta.generatedAt)}</b> (${new Date(meta.generatedAt).toLocaleString()})`;
+    document.getElementById('windowRange').innerHTML = `Window: <b>${fmtLongDate(meta.window.start)} &ndash; ${fmtLongDate(meta.window.end)}</b> (${meta.window.days}d)`;
     render();
     renderRecentTable();
   }

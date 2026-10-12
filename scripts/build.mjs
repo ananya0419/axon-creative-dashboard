@@ -464,6 +464,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     window: { start: WINDOW_START, end: WINDOW_END, days: WINDOW_DAYS },
     recentUploadWindowDays: RECENT_UPLOAD_DAYS,
+    recentUploadWindow: { start: isoDate(RECENT_CUTOFF), end: WINDOW_END },
     liveCampaignCount: liveCampaigns.length,
     liveCampaigns: liveCampaigns.map(c => c.name),
   }));
