@@ -209,9 +209,7 @@
   <section class="recent-section">
     <h2 class="recent-title">Recently added <span class="pill" id="recentCount">&hellip;</span><span class="recent-sub" id="recentSub"></span></h2>
     <p class="recent-note" id="recentNote"></p>
-    <div class="tablewrap">
-      <table class="recenttable" id="recentTable"></table>
-    </div>
+    <div id="recentGroups"></div>
   </section>
 
   <nav class="games" id="gameNav"></nav>
@@ -416,63 +414,86 @@
     });
   }
 
-  function renderRecentTable(){
-    const list = sortRecent(recentData);
-    document.getElementById('recentCount').textContent = recentData.length;
-    const qualCount = recentData.filter(a=>a.isQualifying).length;
-    document.getElementById('recentSub').textContent = `uploaded to the creative library in the last ${meta.recentUploadWindowDays} days, across all active campaigns`;
-    document.getElementById('recentNote').innerHTML = `Upload date is when the file entered Axon's library, not necessarily when a campaign started serving it. <b>${qualCount}</b> of these have already crossed the 5%-for-3-days bar above and show their live status; the rest are still below it (or too new to say), with their current window spend and last-3-day share shown as-is.`;
+  function recentRowHtml(a){
+    let thumbHtml;
+    if(a.type==='ENDCARD'){
+      thumbHtml = `<div class="rthumb"><img src="${a.url}" loading="lazy" alt=""></div>`;
+    } else if(a.posterUrl){
+      thumbHtml = `<div class="rthumb"><img src="${a.posterUrl}" loading="lazy" alt=""></div>`;
+    } else {
+      thumbHtml = `<div class="rthumb empty">${a.type==='PLAYABLE'?'▦':'–'}</div>`;
+    }
 
-    const rows = list.map(a=>{
-      let thumbHtml;
-      if(a.type==='ENDCARD'){
-        thumbHtml = `<div class="rthumb"><img src="${a.url}" loading="lazy" alt=""></div>`;
-      } else if(a.posterUrl){
-        thumbHtml = `<div class="rthumb"><img src="${a.posterUrl}" loading="lazy" alt=""></div>`;
-      } else {
-        thumbHtml = `<div class="rthumb empty">${a.type==='PLAYABLE'?'▦':'–'}</div>`;
-      }
+    const campHtml = a.campaigns.map(c=>c.name).join('<br>') || '<span style="color:var(--muted)">not yet in an active campaign</span>';
 
-      const campHtml = a.campaigns.map(c=>`${c.game} / ${c.name}`).join('<br>') || '<span style="color:var(--muted)">not yet in an active campaign</span>';
+    let statusHtml;
+    if(a.campaigns.length===0){
+      statusHtml = `<span class="rstatus below">no spend yet</span>`;
+    } else {
+      const labels = [...new Set(a.campaigns.map(c=>c.trendLabel))];
+      statusHtml = labels.map(l=>{
+        const cls = l==='Picking up' ? 'up' : l==='Performing' ? 'perf' : 'below';
+        const icon = l==='Picking up' ? '&#9650; ' : l==='Performing' ? '&#9679; ' : '';
+        return `<span class="rstatus ${cls}">${icon}${l}</span>`;
+      }).join(' ');
+    }
 
-      let statusHtml;
-      if(a.campaigns.length===0){
-        statusHtml = `<span class="rstatus below">no spend yet</span>`;
-      } else {
-        const labels = [...new Set(a.campaigns.map(c=>c.trendLabel))];
-        statusHtml = labels.map(l=>{
-          const cls = l==='Picking up' ? 'up' : l==='Performing' ? 'perf' : 'below';
-          const icon = l==='Picking up' ? '&#9650; ' : l==='Performing' ? '&#9679; ' : '';
-          return `<span class="rstatus ${cls}">${icon}${l}</span>`;
-        }).join(' ');
-      }
+    return `<tr>
+      <td>${thumbHtml}</td>
+      <td><div class="rname-cell"><span class="rbadge ${a.type}">${a.type}</span><div><div class="rname"><a href="${a.url}" target="_blank" rel="noopener" title="${a.name}">${a.name}</a></div></div></div></td>
+      <td class="rcamp">${campHtml}</td>
+      <td class="mono">${a.uploadDate||'&mdash;'}</td>
+      <td class="mono">${a.daysLive!=null?a.daysLive+'d':'&mdash;'}</td>
+      <td class="mono">${a.totalSpend>0?fmtMoney(a.totalSpend):'&mdash;'}</td>
+      <td class="mono">${a.bestLastAvg>0?a.bestLastAvg.toFixed(1)+'%':'&mdash;'}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }
 
-      return `<tr>
-        <td>${thumbHtml}</td>
-        <td><div class="rname-cell"><span class="rbadge ${a.type}">${a.type}</span><div><div class="rname"><a href="${a.url}" target="_blank" rel="noopener" title="${a.name}">${a.name}</a></div></div></div></td>
-        <td class="rcamp">${campHtml}</td>
-        <td class="mono">${a.uploadDate||'&mdash;'}</td>
-        <td class="mono">${a.daysLive!=null?a.daysLive+'d':'&mdash;'}</td>
-        <td class="mono">${a.totalSpend>0?fmtMoney(a.totalSpend):'&mdash;'}</td>
-        <td class="mono">${a.bestLastAvg>0?a.bestLastAvg.toFixed(1)+'%':'&mdash;'}</td>
-        <td>${statusHtml}</td>
-      </tr>`;
-    }).join('');
-
-    const cols = [
-      ['', ''], ['name','Creative'], ['', 'Game / Campaign'], ['uploadDate','Uploaded'],
-      ['daysLive','Days live'], ['totalSpend','Window spend'], ['bestLastAvg','Last 3d avg'], ['', 'Status'],
-    ];
-    const theadHtml = cols.map(([key,label])=>{
+  const RECENT_COLS = [
+    ['', ''], ['name','Creative'], ['', 'Campaign'], ['uploadDate','Uploaded'],
+    ['daysLive','Days live'], ['totalSpend','Window spend'], ['bestLastAvg','Last 3d avg'], ['', 'Status'],
+  ];
+  function recentTheadHtml(){
+    return RECENT_COLS.map(([key,label])=>{
       const sortable = !!key;
       const sorted = sortable && recentSort.key===key;
       return `<th ${sortable?`data-sort-key="${key}"`:''} class="${sorted?'sorted':''}">${label}</th>`;
     }).join('');
+  }
 
-    document.getElementById('recentTable').innerHTML = `
-      <thead><tr>${theadHtml}</tr></thead>
-      <tbody>${rows}</tbody>
-    `;
+  function renderRecentTable(){
+    document.getElementById('recentCount').textContent = recentData.length;
+    const qualCount = recentData.filter(a=>a.isQualifying).length;
+    document.getElementById('recentSub').textContent = `uploaded to the creative library in the last ${meta.recentUploadWindowDays} days`;
+    document.getElementById('recentNote').innerHTML = `Upload date is when the file entered Axon's library, not necessarily when a campaign started serving it. <b>${qualCount}</b> of these have already crossed the 5%-for-3-days bar above and show their live status; the rest are still below it (or too new to say), with their current window spend and last-3-day share shown as-is. Grouped by game, newest upload first &mdash; both the game groups and the rows inside each are ordered that way.`;
+
+    // Group by game (a creative's game comes from its highest-spending campaign;
+    // one with zero spend anywhere yet has no campaign to infer a game from).
+    const groups = {};
+    for(const a of recentData){
+      const game = a.campaigns.length ? a.campaigns[0].game : 'Not yet in an active campaign';
+      (groups[game] = groups[game] || []).push(a);
+    }
+    const latestOf = list => Math.max(...list.map(a => a.uploadDate ? new Date(a.uploadDate).getTime() : 0));
+    const gameOrder = Object.keys(groups).sort((g1,g2) => latestOf(groups[g2]) - latestOf(groups[g1]));
+
+    document.getElementById('recentGroups').innerHTML = gameOrder.map((game, gi) => {
+      const items = sortRecent(groups[game]);
+      const rows = items.map(recentRowHtml).join('');
+      return `<details class="campaign" ${gi===0?'open':''}>
+        <summary>
+          <div><span class="name">${game}</span></div>
+          <div class="meta"><span><b>${items.length}</b> creative${items.length>1?'s':''}</span><span>newest <b>${items[0]?.uploadDate||'&mdash;'}</b></span></div>
+          <span class="chev">&#8250;</span>
+        </summary>
+        <div class="inner">
+          <div class="tablewrap">
+            <table class="recenttable"><thead><tr>${recentTheadHtml()}</tr></thead><tbody>${rows}</tbody></table>
+          </div>
+        </div>
+      </details>`;
+    }).join('');
 
     document.querySelectorAll('[data-sort-key]').forEach(th=>{
       th.addEventListener('click', ()=>{

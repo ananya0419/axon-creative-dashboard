@@ -29,15 +29,31 @@ const RECENT_UPLOAD_DAYS = 28;
 const QUALIFY_MIN_PCT = 5;
 const QUALIFY_MIN_RUN = 3;
 
+// Add an entry here (any case of the package name) whenever a new game shows up
+// unmapped in the "Recently added" table or a game tab — the fallback below can't
+// reliably split a lowercase package segment into real words on its own.
 const GAME_NAMES = {
   'com.felicitygames.lineout': 'Line Out',
   'com.felicitygames.arrowmaze': 'Arrow Maze',
   'com.felicitygames.wordjam': 'Cloud Word Jam',
   'com.felicitygames.sorterygame': 'Sortery',
   'com.felicitygames.woofdoku': 'WoofDoku',
-  'com.FelicityGames.DuelMasterPistolFight': 'Duel Master - Pistol Fight',
   'com.felicitygames.duelmasterpistolfight': 'Duel Master - Pistol Fight',
+  'com.felicitygames.roadconnect': 'Road Connect',
 };
+
+function resolveGameName(pkg) {
+  if (!pkg) return 'Unknown game';
+  const hit = GAME_NAMES[pkg] || GAME_NAMES[pkg.toLowerCase()];
+  if (hit) return hit;
+  // Fallback for a genuinely new, not-yet-mapped package: strip the usual
+  // "com.<company>." prefix and title-case what's left as a single word
+  // (e.g. "com.felicitygames.somenewgame" -> "Somenewgame"). Better than the
+  // raw dotted string, but add a proper GAME_NAMES entry as soon as you know
+  // the real game name/spacing.
+  const last = pkg.split('.').pop() || pkg;
+  return last.charAt(0).toUpperCase() + last.slice(1);
+}
 
 // ---------- date helpers ----------
 function isoDate(d) { return d.toISOString().slice(0, 10); }
@@ -253,7 +269,7 @@ async function main() {
     }
 
     const pkg = rows[0].campaign_package_name;
-    const gameName = GAME_NAMES[pkg] || pkg;
+    const gameName = resolveGameName(pkg);
     const campaignDayTotal = advertiserTotals[camp.name] || {};
     const allDays = Object.keys(campaignDayTotal).sort();
 
@@ -371,7 +387,7 @@ async function main() {
     const rows = allRowsByCampaign[camp.name] || [];
     if (rows.length === 0) continue;
     const pkg = rows[0].campaign_package_name;
-    const gameName = GAME_NAMES[pkg] || pkg;
+    const gameName = resolveGameName(pkg);
     const campaignDayTotal = advertiserTotals[camp.name] || {};
     const allDays = Object.keys(campaignDayTotal).sort();
 
