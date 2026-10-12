@@ -1,0 +1,13 @@
+{
+  "name": "axon-creative-dashboard",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Daily-refreshed dashboard of which Axon (AppLovin) UA creatives are picking up or performing across Felicity Games' active campaigns.",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creative Momentum Signals</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f1ed;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --accent:#4a3aa7; --accent-ink:#ffffff; --accent-soft:#ece9fb;
+    --video:#2a78d6; --playable:#eb6834; --endcard:#1baf7a;
+    --good:#0ca30c; --good-soft:rgba(12,163,12,.14); --thresh:#c3c2b7;
+    --shadow: 0 1px 2px rgba(11,11,11,0.06), 0 4px 14px rgba(11,11,11,0.05);
+    font-size:15px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#212120;
+      --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+      --accent:#9085e9; --accent-ink:#161328; --accent-soft:#26224a;
+      --video:#3987e5; --playable:#d95926; --endcard:#199e70;
+      --good:#0ca30c; --good-soft:rgba(12,163,12,.18); --thresh:#383835;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{ margin:0; }
+  body{ background:var(--page); color:var(--ink); font-family:"Public Sans", system-ui, -apple-system, sans-serif; padding-inline:16px; }
+  h1,h2,h3,h4{ font-family:"Archivo", system-ui, sans-serif; letter-spacing:-0.01em; text-wrap:balance; margin:0; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  a{ color:var(--accent); }
+  img{ max-width:100%; }
+
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  header.top{ padding-block:28px 18px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .toprow{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  header.top .eyebrow{ font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+  header.top h1{ font-size:clamp(26px,4vw,36px); font-weight:800; }
+  header.top p.sub{ color:var(--ink-2); max-width:70ch; margin-top:8px; font-size:14.5px; line-height:1.55; }
+
+  .freshness{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+  .freshness .asof{ font-size:11.5px; color:var(--muted); text-align:right; }
+  .freshness .asof b{ color:var(--ink-2); }
+  #refreshBtn{ font-family:"Archivo",sans-serif; font-weight:700; font-size:13px; background:var(--accent); color:var(--accent-ink); border:none; border-radius:8px; padding:9px 16px; cursor:pointer; display:flex; align-items:center; gap:7px; box-shadow:var(--shadow); }
+  #refreshBtn:hover{ filter:brightness(1.08); }
+  #refreshBtn:active{ transform:translateY(1px); }
+  #refreshBtn.spinning .spin{ animation:spin .8s linear infinite; }
+  #refreshBtn:disabled{ opacity:.65; cursor:wait; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .refresh-toast{ font-size:11px; color:var(--muted); text-align:right; min-height:14px; }
+
+  details.method{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-top:16px; box-shadow:var(--shadow); }
+  details.method summary{ cursor:pointer; font-weight:600; font-size:14px; }
+  details.method .body{ margin-top:12px; font-size:13.5px; line-height:1.65; color:var(--ink-2); }
+  details.method .body b{ color:var(--ink); }
+  details.method .flag{ background:var(--accent-soft); color:var(--accent); border-radius:8px; padding:10px 12px; margin-top:10px; font-size:13px; line-height:1.55; }
+
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:18px; }
+  .stat{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+  .stat .n{ font-family:"IBM Plex Mono",monospace; font-size:24px; font-weight:600; }
+  .stat .l{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .recent-section{ margin-top:24px; }
+  .recent-title{ font-size:17px; font-weight:800; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .recent-title .pill{ background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:2px 10px; font-size:13px; font-weight:700; font-family:"IBM Plex Mono",monospace; }
+  .recent-title .recent-sub{ font-size:12.5px; font-weight:500; color:var(--muted); }
+  .recent-note{ font-size:12.5px; color:var(--ink-2); margin-top:6px; max-width:80ch; line-height:1.5; }
+
+  .tablewrap{ margin-top:14px; max-height:560px; overflow:auto; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+  table.recenttable{ width:100%; border-collapse:collapse; font-size:12.5px; background:var(--surface); }
+  table.recenttable thead th{ position:sticky; top:0; background:var(--surface-2); text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; z-index:1; cursor:pointer; user-select:none; }
+  table.recenttable thead th:hover{ color:var(--ink-2); }
+  table.recenttable thead th.sorted::after{ content:' \25BE'; }
+  table.recenttable td{ padding:7px 10px; border-bottom:1px solid var(--grid); vertical-align:middle; }
+  table.recenttable tr:last-child td{ border-bottom:none; }
+  table.recenttable tr:hover td{ background:var(--surface-2); }
+  .rthumb{ width:34px; height:50px; border-radius:5px; overflow:hidden; background:var(--baseline); flex-shrink:0; }
+  .rthumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .rthumb.empty{ display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .rname-cell{ display:flex; align-items:center; gap:8px; min-width:220px; }
+  .rname{ font-weight:600; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rname a{ color:var(--ink); text-decoration:none; }
+  .rname a:hover{ color:var(--accent); }
+  .rcamp{ font-size:11px; color:var(--muted); }
+  .rbadge{ font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:5px; color:#fff; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+  .rbadge.VIDEO{ background:var(--video); } .rbadge.PLAYABLE{ background:var(--playable); } .rbadge.ENDCARD{ background:var(--endcard); }
+  .rstatus{ font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap; }
+  .rstatus.up{ background:var(--good-soft); color:var(--good); }
+  .rstatus.perf{ background:var(--accent-soft); color:var(--accent); }
+  .rstatus.below{ background:var(--surface-2); color:var(--muted); border:1px solid var(--border); }
+
+  nav.games{ display:flex; gap:6px; flex-wrap:wrap; margin:22px 0 4px; border-bottom:1px solid var(--border); padding-bottom:0; }
+  nav.games button{ font-family:"Archivo",sans-serif; font-weight:600; font-size:13.5px; background:none; border:none; color:var(--ink-2); padding:10px 14px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  nav.games button:hover{ color:var(--ink); }
+  nav.games button[aria-selected="true"]{ color:var(--accent); border-bottom-color:var(--accent); }
+  nav.games button .cnt{ color:var(--muted); font-weight:500; }
+  nav.games button[aria-selected="true"] .cnt{ color:var(--accent); opacity:.7; }
+
+  section.game{ padding-block:20px 40px; }
+  section.game[hidden]{ display:none; }
+
+  .os-group{ margin-bottom:26px; }
+  .os-group h2{ font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .os-group h2 .pill{ background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:2px 9px; font-size:11px; color:var(--ink-2); text-transform:none; letter-spacing:0; }
+
+  details.campaign{ background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
+  details.campaign > summary{ cursor:pointer; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; list-style:none; flex-wrap:wrap; }
+  details.campaign > summary::-webkit-details-marker{ display:none; }
+  details.campaign > summary .name{ font-family:"Archivo",sans-serif; font-weight:700; font-size:15.5px; }
+  details.campaign > summary .status{ font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:8px; text-transform:uppercase; letter-spacing:.04em; }
+  details.campaign > summary .status.live{ background:var(--good-soft); color:var(--good); }
+  details.campaign > summary .status.paused{ background:var(--surface-2); color:var(--muted); }
+  details.campaign > summary .meta{ font-size:12.5px; color:var(--muted); display:flex; gap:14px; flex-wrap:wrap; }
+  details.campaign > summary .meta b{ color:var(--ink-2); font-weight:600; }
+  details.campaign > summary .chev{ transition:transform .15s ease; color:var(--muted); }
+  details.campaign[open] > summary .chev{ transform:rotate(90deg); }
+  details.campaign .inner{ padding:4px 18px 20px; border-top:1px solid var(--border); }
+  details.campaign .empty{ padding:18px; color:var(--muted); font-size:13.5px; }
+
+  .elements{ margin:16px 0 20px; }
+  .elements h3{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; margin-bottom:8px; }
+  .erow{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; padding:6px 0; border-bottom:1px dashed var(--grid); font-size:13px; }
+  .erow:last-child{ border-bottom:none; }
+  .erow .tagname{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .erow .tagname .bar{ height:6px; border-radius:3px; background:var(--accent); flex-shrink:0; }
+  .erow .label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .erow .val{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2); white-space:nowrap; }
+
+  .typegroup{ margin-top:18px; }
+  .typegroup:first-of-type{ margin-top:4px; }
+  .typegroup h4{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .typegroup h4 .pill{ background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:1px 8px; font-size:10.5px; color:var(--muted); font-weight:600; text-transform:none; letter-spacing:0; }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:14px; }
+
+  .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; position:relative; }
+  .card .chead{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .badge{ font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 7px; border-radius:5px; color:#fff; flex-shrink:0; }
+  .badge.VIDEO{ background:var(--video); } .badge.PLAYABLE{ background:var(--playable); } .badge.ENDCARD{ background:var(--endcard); }
+  .cname{ font-size:12.5px; font-weight:600; line-height:1.35; word-break:break-word; }
+  .cid{ font-size:10.5px; color:var(--muted); }
+  .uploadmeta{ font-size:10.5px; color:var(--muted); margin-top:-4px; }
+  .uploadmeta b{ color:var(--ink-2); font-weight:600; }
+
+  .trendbadge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:999px; letter-spacing:.02em; }
+  .trendbadge.up{ background:var(--good-soft); color:var(--good); }
+  .trendbadge.steady{ background:var(--accent-soft); color:var(--accent); }
+
+  .preview{ width:100%; aspect-ratio:9/16; max-height:220px; border-radius:8px; overflow:hidden; background:var(--baseline); position:relative; border:1px solid var(--border); }
+  .preview img, .preview video, .preview iframe{ width:100%; height:100%; object-fit:contain; border:none; background:#000; display:block; }
+  .preview .openlink{ position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,.6); color:#fff; font-size:10.5px; padding:3px 7px; border-radius:6px; text-decoration:none; }
+
+  .tags{ display:flex; flex-wrap:wrap; gap:5px; }
+  .tag{ font-size:10.5px; background:var(--surface); border:1px solid var(--border); color:var(--ink-2); padding:2.5px 7px; border-radius:6px; }
+
+  .cstats{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-2); }
+  .cstats .v{ font-family:"IBM Plex Mono",monospace; color:var(--ink); font-weight:600; }
+
+  .chart-wrap{ position:relative; }
+  .chart-wrap svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .xlabels{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted); margin-top:2px; font-family:"IBM Plex Mono",monospace; }
+
+  #tooltip{ position:fixed; pointer-events:none; background:var(--ink); color:var(--page); font-family:"IBM Plex Mono",monospace; font-size:11px; padding:5px 8px; border-radius:6px; z-index:50; opacity:0; transform:translate(-50%,-120%); white-space:nowrap; transition:opacity .08s; }
+
+  footer.pagefoot{ padding-block:20px 40px; color:var(--muted); font-size:12px; text-align:center; }
+
+  @media (max-width: 560px){
+    .toprow{ flex-direction:column; }
+    .freshness{ align-items:flex-start; width:100%; }
+    .freshness .asof{ text-align:left; }
+    .refresh-toast{ text-align:left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="toprow">
+      <div>
+        <div class="eyebrow">Axon by AppLovin &middot; rolling momentum read &middot; all currently-active campaigns</div>
+        <h1>What's picking up right now &mdash; not just what already won</h1>
+      </div>
+      <div class="freshness">
+        <button id="refreshBtn" title="Re-check for the latest data this site's daily pull has published">
+          <span class="spin">&#8635;</span> <span class="btnlabel">Refresh</span>
+        </button>
+        <div class="asof" id="asOf">Data as of &hellip;</div>
+        <div class="refresh-toast" id="refreshToast"></div>
+      </div>
+    </div>
+    <p class="sub" id="subtext">A creative qualifies when it holds more than 5% of its campaign's daily spend for 3+ straight days, split into <b>Picking up</b> (still climbing) and <b>Performing</b> (holding its share). Creatives that crossed the bar earlier but have since faded are left out. Within each campaign, creatives are sorted by last-3-day average spend share.</p>
+
+    <details class="method">
+      <summary>Methodology</summary>
+      <div class="body" id="methodBody">Loading&hellip;</div>
+    </details>
+
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section class="recent-section">
+    <h2 class="recent-title">Recently added <span class="pill" id="recentCount">&hellip;</span><span class="recent-sub" id="recentSub"></span></h2>
+    <p class="recent-note" id="recentNote"></p>
+    <div class="tablewrap">
+      <table class="recenttable" id="recentTable"></table>
+    </div>
+  </section>
+
+  <nav class="games" id="gameNav"></nav>
+  <div id="gameSections"></div>
+
+  <footer class="pagefoot" id="pagefoot">Axon Asset + Advertiser Reporting API &middot; generated for Felicity Games</footer>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+(function(){
+  const PALETTE = { VIDEO:'--video', PLAYABLE:'--playable', ENDCARD:'--endcard' };
+  const tooltip = document.getElementById('tooltip');
+  let data = null, recentData = null, meta = null;
+
+  function fmtMoney(v){ return '$' + Number(v).toLocaleString(undefined,{maximumFractionDigits:0}); }
+  function fmtDate(d){ const [y,m,day]=d.split('-'); return m+'/'+day; }
+  function fmtUploadDate(iso){
+    if(!iso) return null;
+    const d = new Date(iso.endsWith('Z') ? iso : iso+'Z');
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+  }
+  function fmtLongDate(iso){
+    const d = new Date(iso+'T00:00:00Z');
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', timeZone:'UTC' });
+  }
+  function timeAgo(iso){
+    const d = new Date(iso);
+    const mins = Math.round((Date.now()-d.getTime())/60000);
+    if(mins < 1) return 'just now';
+    if(mins < 60) return mins+' min ago';
+    const hrs = Math.round(mins/60);
+    if(hrs < 24) return hrs+' hr'+(hrs>1?'s':'')+' ago';
+    const days = Math.round(hrs/24);
+    return days+' day'+(days>1?'s':'')+' ago';
+  }
+
+  function buildChart(series, best, typeClass, uid){
+    const W = 280, H = 84, padL = 4, padR = 4, padT = 10, padB = 4;
+    const n = series.length;
+    const maxPct = Math.max(5, ...series.map(d=>d.pct)) * 1.15;
+    const x = i => padL + (i/(Math.max(n-1,1))) * (W-padL-padR);
+    const y = v => padT + (1 - v/maxPct) * (H-padT-padB);
+    const yThresh = y(5);
+
+    let path = series.map((d,i)=> (i===0?'M':'L') + x(i).toFixed(1) + ',' + y(d.pct).toFixed(1)).join(' ');
+    let area = path + ' L' + x(n-1).toFixed(1) + ',' + (H-padB) + ' L' + x(0).toFixed(1) + ',' + (H-padB) + ' Z';
+
+    let bandRect = '';
+    if(best){
+      const si = series.findIndex(d=>d.day===best.start);
+      const ei = series.findIndex(d=>d.day===best.end);
+      if(si>-1 && ei>-1){
+        bandRect = `<rect x="${x(si).toFixed(1)}" y="${padT}" width="${(x(ei)-x(si)).toFixed(1)}" height="${(H-padT-padB)}" fill="var(${PALETTE[typeClass]})" opacity="0.10" />`;
+      }
+    }
+
+    const colorVar = `var(${PALETTE[typeClass]})`;
+    const peakIdx = series.reduce((best,d,i)=> d.pct>series[best].pct? i: best, 0);
+
+    return `
+    <svg viewBox="0 0 ${W} ${H}" id="chart-${uid}" data-n="${n}" data-padl="${padL}" data-padr="${padR}" data-w="${W}">
+      <line x1="${padL}" y1="${yThresh.toFixed(1)}" x2="${W-padR}" y2="${yThresh.toFixed(1)}" stroke="var(--thresh)" stroke-dasharray="2,3" stroke-width="1"/>
+      <text x="${W-padR}" y="${(yThresh-3).toFixed(1)}" text-anchor="end" font-size="7" fill="var(--muted)" font-family="IBM Plex Mono, monospace">5% threshold</text>
+      ${bandRect}
+      <path d="${area}" fill="${colorVar}" opacity="0.14" stroke="none"/>
+      <path d="${path}" fill="none" stroke="${colorVar}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x(peakIdx).toFixed(1)}" cy="${y(series[peakIdx].pct).toFixed(1)}" r="2.4" fill="${colorVar}"/>
+      <line class="crosshair" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="var(--ink-2)" stroke-width="1" opacity="0" />
+      <circle class="crossdot" r="2.6" fill="${colorVar}" stroke="var(--surface-2)" stroke-width="1.2" opacity="0" />
+      <rect class="hitlayer" x="0" y="0" width="${W}" height="${H}" fill="transparent" style="cursor:crosshair"/>
+    </svg>`;
+  }
+
+  function wireChart(el, series, uid){
+    const svg = el.querySelector('#chart-'+uid);
+    if(!svg) return;
+    const hit = svg.querySelector('.hitlayer');
+    const crosshair = svg.querySelector('.crosshair');
+    const crossdot = svg.querySelector('.crossdot');
+    const n = series.length, W = 280, padL=4, padR=4;
+    hit.addEventListener('mousemove', (e)=>{
+      const rect = svg.getBoundingClientRect();
+      const relX = (e.clientX - rect.left) / rect.width * W;
+      let idx = Math.round(((relX - padL) / (W-padL-padR)) * (n-1));
+      idx = Math.max(0, Math.min(n-1, idx));
+      const d = series[idx];
+      const xPos = padL + (idx/(Math.max(n-1,1))) * (W-padL-padR);
+      crosshair.setAttribute('x1', xPos); crosshair.setAttribute('x2', xPos); crosshair.setAttribute('opacity','0.35');
+      const maxPct = Math.max(5, ...series.map(p=>p.pct)) * 1.15;
+      const H=84,padT=10,padB=4;
+      const yPos = padT + (1 - d.pct/maxPct) * (H-padT-padB);
+      crossdot.setAttribute('cx', xPos); crossdot.setAttribute('cy', yPos); crossdot.setAttribute('opacity','1');
+      tooltip.style.opacity = '1';
+      tooltip.style.left = e.clientX + 'px';
+      tooltip.style.top = e.clientY + 'px';
+      tooltip.textContent = d.day + '  ·  ' + d.pct.toFixed(1) + '%  ·  ' + fmtMoney(d.spend);
+    });
+    hit.addEventListener('mouseleave', ()=>{
+      crosshair.setAttribute('opacity','0'); crossdot.setAttribute('opacity','0'); tooltip.style.opacity='0';
+    });
+  }
+
+  function tagChips(tags){
+    const order = ['hook','caption','comp','shape','ctaStyle','duration'];
+    const labels = {hook:'Hook',caption:'Caption',comp:'Comp',shape:'Shape',ctaStyle:'CTA',duration:'Length'};
+    return order.filter(k=>tags[k]).map(k=>`<span class="tag"><b style="opacity:.6">${labels[k]}:</b> ${tags[k]}</span>`).join('');
+  }
+
+  function trendBadge(trend){
+    if(trend.label === 'Picking up') return `<span class="trendbadge up">&#9650; Picking up</span>`;
+    return `<span class="trendbadge steady">&#9679; Performing</span>`;
+  }
+
+  function assetCard(a, gameKey, campKey){
+    const uid = gameKey+'-'+campKey+'-'+a.asset_id+'-'+Math.random().toString(36).slice(2,7);
+    let mediaHtml = '';
+    if(a.type === 'VIDEO'){
+      mediaHtml = `<video src="${a.url}" poster="${a.posterUrl||''}" muted playsinline preload="metadata" controls></video>`;
+    } else if(a.type === 'ENDCARD'){
+      mediaHtml = `<img src="${a.url}" loading="lazy" alt="${a.name}">`;
+    } else {
+      mediaHtml = `<iframe src="${a.url}" loading="lazy"></iframe>`;
+    }
+    const runTxt = a.bestRunWindow ? `${fmtDate(a.bestRunWindow.start)}&ndash;${fmtDate(a.bestRunWindow.end)}` : '&mdash;';
+    return `
+    <div class="card" data-asset-id="${a.asset_id}">
+      <div class="chead">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span class="badge ${a.type}">${a.type}</span>${trendBadge(a.trend)}</div>
+        <div class="cid mono">#${a.asset_id}</div>
+      </div>
+      <div class="cname">${a.name}</div>
+      <div class="uploadmeta">Uploaded <b>${fmtUploadDate(a.uploadTime) || 'unknown'}</b>${a.daysLive!=null ? ` &middot; live <b>${a.daysLive}d</b>` : ''}</div>
+      <div class="preview">${mediaHtml}<a class="openlink" href="${a.url}" target="_blank" rel="noopener">source ↗</a></div>
+      <div class="tags">${tagChips(a.tags)}</div>
+      <div class="cstats">
+        <div>Last 3d avg<br><span class="v" style="color:var(--accent)">${a.trend.lastAvg.toFixed(1)}%</span></div>
+        <div>Window spend<br><span class="v">${fmtMoney(a.totalSpend)}</span></div>
+        <div>Best run<br><span class="v">${a.maxConsecutiveRun}d</span></div>
+      </div>
+      <div class="chart-wrap">${buildChart(a.series, a.bestRunWindow, a.type, uid)}</div>
+      <div class="xlabels"><span>${fmtDate(a.series[0].day)}</span><span>${fmtDate(a.series[a.series.length-1].day)}</span></div>
+    </div>`;
+  }
+
+  function elementRankingHtml(ranking){
+    if(!ranking.length) return '';
+    const max = Math.max(...ranking.map(r=>r.totalSpend));
+    const rows = ranking.slice(0,8).map(r => `
+      <div class="erow">
+        <div class="tagname"><span class="bar" style="width:${Math.max(6,(r.totalSpend/max*70))}px"></span><span class="label">${r.tag}</span></div>
+        <div class="val">${fmtMoney(r.totalSpend)} · ${r.count} creative${r.count>1?'s':''}</div>
+      </div>`).join('');
+    return `<div class="elements"><h3>Which elements are working (ranked by qualifying spend)</h3>${rows}</div>`;
+  }
+
+  function typeGroupHtml(label, items, gameKey, campKey){
+    if(!items.length) return '';
+    return `<div class="typegroup">
+      <h4>${label} <span class="pill">${items.length}</span></h4>
+      <div class="grid">${items.map(a=>assetCard(a, gameKey, campKey)).join('')}</div>
+    </div>`;
+  }
+
+  function campaignHtml(campName, camp, gameKey, open, windowSpan){
+    if(camp.noData || !camp.assets || camp.assets.length===0){
+      return `<details class="campaign"><summary><span class="name">${campName}</span><span class="status paused">${camp.noData?'Paused':camp.status}</span><span class="meta">no creative picking up or performing in this window</span><span class="chev">&#8250;</span></summary><div class="inner"><div class="empty">Nothing cleared 5% share for 3+ days in ${windowSpan}, or everything that did has since faded.</div></div></details>`;
+    }
+    const campKey = campName.replace(/[^a-z0-9]/gi,'');
+    const videos = camp.assets.filter(a=>a.type==='VIDEO');
+    const playables = camp.assets.filter(a=>a.type==='PLAYABLE');
+    const endcards = camp.assets.filter(a=>a.type==='ENDCARD');
+    const cardsHtml = typeGroupHtml('Videos', videos, gameKey, campKey)
+      + typeGroupHtml('Playables', playables, gameKey, campKey)
+      + typeGroupHtml('Endcards', endcards, gameKey, campKey);
+    const span = camp.firstActiveDay ? `${fmtDate(camp.firstActiveDay)}&ndash;${fmtDate(camp.lastActiveDay)}` : '&mdash;';
+    const up = camp.assets.filter(a=>a.trend.label==='Picking up').length;
+    const perf = camp.assets.length - up;
+    return `<details class="campaign" ${open?'open':''} data-camp="${campKey}">
+      <summary>
+        <div><span class="name">${campName}</span><span class="status ${camp.status.toLowerCase()}">${camp.status}</span></div>
+        <div class="meta"><span><b>${fmtMoney(camp.totalCampaignSpend)}</b> window spend</span><span><b>${up}</b> picking up &middot; <b>${perf}</b> performing</span><span>active <b>${span}</b></span></div>
+        <span class="chev">&#8250;</span>
+      </summary>
+      <div class="inner">
+        ${elementRankingHtml(camp.elementRanking)}
+        ${cardsHtml}
+      </div>
+    </details>`;
+  }
+
+  let recentSort = { key: 'uploadDate', dir: -1 };
+  function sortRecent(list){
+    const { key, dir } = recentSort;
+    return [...list].sort((a,b)=>{
+      let va = a[key], vb = b[key];
+      if(key==='uploadDate'){ va = va||''; vb = vb||''; }
+      if(va < vb) return -1*dir;
+      if(va > vb) return 1*dir;
+      return 0;
+    });
+  }
+
+  function renderRecentTable(){
+    const list = sortRecent(recentData);
+    document.getElementById('recentCount').textContent = recentData.length;
+    const qualCount = recentData.filter(a=>a.isQualifying).length;
+    document.getElementById('recentSub').textContent = `uploaded to the creative library in the last ${meta.recentUploadWindowDays} days, across all active campaigns`;
+    document.getElementById('recentNote').innerHTML = `Upload date is when the file entered Axon's library, not necessarily when a campaign started serving it. <b>${qualCount}</b> of these have already crossed the 5%-for-3-days bar above and show their live status; the rest are still below it (or too new to say), with their current window spend and last-3-day share shown as-is.`;
+
+    const rows = list.map(a=>{
+      let thumbHtml;
+      if(a.type==='ENDCARD'){
+        thumbHtml = `<div class="rthumb"><img src="${a.url}" loading="lazy" alt=""></div>`;
+      } else if(a.posterUrl){
+        thumbHtml = `<div class="rthumb"><img src="${a.posterUrl}" loading="lazy" alt=""></div>`;
+      } else {
+        thumbHtml = `<div class="rthumb empty">${a.type==='PLAYABLE'?'▦':'–'}</div>`;
+      }
+
+      const campHtml = a.campaigns.map(c=>`${c.game} / ${c.name}`).join('<br>') || '<span style="color:var(--muted)">not yet in an active campaign</span>';
+
+      let statusHtml;
+      if(a.campaigns.length===0){
+        statusHtml = `<span class="rstatus below">no spend yet</span>`;
+      } else {
+        const labels = [...new Set(a.campaigns.map(c=>c.trendLabel))];
+        statusHtml = labels.map(l=>{
+          const cls = l==='Picking up' ? 'up' : l==='Performing' ? 'perf' : 'below';
+          const icon = l==='Picking up' ? '&#9650; ' : l==='Performing' ? '&#9679; ' : '';
+          return `<span class="rstatus ${cls}">${icon}${l}</span>`;
+        }).join(' ');
+      }
+
+      return `<tr>
+        <td>${thumbHtml}</td>
+        <td><div class="rname-cell"><span class="rbadge ${a.type}">${a.type}</span><div><div class="rname"><a href="${a.url}" target="_blank" rel="noopener" title="${a.name}">${a.name}</a></div></div></div></td>
+        <td class="rcamp">${campHtml}</td>
+        <td class="mono">${a.uploadDate||'&mdash;'}</td>
+        <td class="mono">${a.daysLive!=null?a.daysLive+'d':'&mdash;'}</td>
+        <td class="mono">${a.totalSpend>0?fmtMoney(a.totalSpend):'&mdash;'}</td>
+        <td class="mono">${a.bestLastAvg>0?a.bestLastAvg.toFixed(1)+'%':'&mdash;'}</td>
+        <td>${statusHtml}</td>
+      </tr>`;
+    }).join('');
+
+    const cols = [
+      ['', ''], ['name','Creative'], ['', 'Game / Campaign'], ['uploadDate','Uploaded'],
+      ['daysLive','Days live'], ['totalSpend','Window spend'], ['bestLastAvg','Last 3d avg'], ['', 'Status'],
+    ];
+    const theadHtml = cols.map(([key,label])=>{
+      const sortable = !!key;
+      const sorted = sortable && recentSort.key===key;
+      return `<th ${sortable?`data-sort-key="${key}"`:''} class="${sorted?'sorted':''}">${label}</th>`;
+    }).join('');
+
+    document.getElementById('recentTable').innerHTML = `
+      <thead><tr>${theadHtml}</tr></thead>
+      <tbody>${rows}</tbody>
+    `;
+
+    document.querySelectorAll('[data-sort-key]').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.sortKey;
+        if(recentSort.key===key) recentSort.dir *= -1;
+        else recentSort = { key, dir: key==='name' ? 1 : -1 };
+        renderRecentTable();
+      });
+    });
+  }
+
+  function renderMethodology(){
+    let qualTotal=0, fadingNote='';
+    for(const g in data.games) for(const p in data.games[g]) for(const c in data.games[g][p]) qualTotal += (data.games[g][p][c].assets||[]).length;
+    const windowSpan = `${fmtLongDate(data.range.start)} &ndash; ${fmtLongDate(data.range.end)}`;
+    document.getElementById('methodBody').innerHTML = `
+      <p><b>Scope.</b> Pulled fresh from Axon's campaign list filtered to <span class="mono">status = LIVE</span> on every run &mdash; campaigns start and stop on their own schedule, so "active" is re-resolved each time, not a fixed list. As of this pull that's <b>${meta.liveCampaignCount} campaign${meta.liveCampaignCount===1?'':'s'}</b>: ${meta.liveCampaigns.map(n=>`<span class="mono">${n}</span>`).join(', ')}.</p>
+      <p><b>Window.</b> ${windowSpan} (${meta.window.days} days, ending yesterday) &mdash; inside Axon's 45-day retention limit.</p>
+      <p><b>Sort order.</b> Within a campaign, creatives are ranked by <span class="mono">last-3-day average spend%</span>, descending.</p>
+      <p><b>Spend % formula.</b> <span class="mono">spend% = (asset's cost that day) / (campaign's total cost that day) &times; 100</span>, asset cost summed across every creative-set pairing it appeared in. The campaign-day denominator comes from Axon's authoritative <span class="mono">report_type=advertiser</span> endpoint (not reconstructed from asset-level rows, which can under/over-count when a creative set rotates between multiple primaries). Spend% is clamped at 100% for the rare day where Axon's two reporting pipelines haven't fully reconciled.</p>
+      <p><b>Qualifying rule.</b> 3+ consecutive days &gt; 5% share, evaluated inside this window.</p>
+      <p><b>Picking up / Performing / Fading.</b> Least-squares slope of spend% over the window, plus last-3-day vs first-3-day average: <b>Picking up</b> = slope &gt; +0.12 pts/day and last-3-day average &ge;1.15&times; the first-3-day average; <b>Performing</b> = last-3-day average still &gt;5% without meeting that rising bar; <b>Fading (excluded)</b> = neither &mdash; qualified at some point in the window and has since dropped back under 5%, left out of this list on purpose.</p>
+      <p><b>Previews.</b> Direct links to Axon's CDN (<span class="mono">asset_url</span>) &mdash; video, playable iframe, and endcard image all load live, real creative content.</p>
+      <p><b>Upload date &amp; days live.</b> From Axon's Management API (<span class="mono">GET /asset/list</span>), which returns each asset's own <span class="mono">upload_time</span> &mdash; when the file entered the account's library, not when a specific campaign started serving it. "Days live" is today minus that date, so it's an upper bound on runtime.</p>
+      <p><b>Recently added table.</b> Same <span class="mono">upload_time</span> field, pulled for every asset seen anywhere in this window's spend data, filtered to the last ${meta.recentUploadWindowDays} days &mdash; not just ones that cleared the 5%-for-3-days bar.</p>
+      <p><b>Automation.</b> This page is rebuilt on a daily schedule by a GitHub Action that re-runs the full pull against Axon's live API and republishes the data &mdash; see the repo's <span class="mono">.github/workflows</span> for the schedule. "Refresh" re-fetches whatever that latest scheduled (or manually triggered) run has published; it does not call Axon directly from your browser.</p>
+      <p>Qualifying campaign&times;creative instances this run: <b>${qualTotal}</b>.</p>
+    `;
+    document.getElementById('subtext').innerHTML = `A creative qualifies when it holds more than 5% of its campaign's daily spend for 3+ straight days, over the last ${meta.window.days} days ending yesterday, split into <b>Picking up</b> (still climbing) and <b>Performing</b> (holding its share). Creatives that crossed the bar earlier but have since faded are left out. Within each campaign, creatives are sorted by <b>last-3-day average spend share</b>.`;
+    document.getElementById('pagefoot').innerHTML = `Axon Asset + Advertiser Reporting API &middot; window ${windowSpan} &middot; all LIVE campaigns as of pull time &middot; generated for Felicity Games`;
+  }
+
+  function render(){
+    const games = data.games;
+    const gameNav = document.getElementById('gameNav');
+    const sectionsEl = document.getElementById('gameSections');
+    const specialKey = '(no spend data in this window)';
+    const gameKeys = Object.keys(games).filter(g=>g!==specialKey);
+    const windowSpan = `${fmtLongDate(data.range.start)} - ${fmtLongDate(data.range.end)}`;
+
+    let totalCreatives = new Set(), totalInstances=0, totalCampaigns=0, totalSpend=0, up=0, perf=0;
+    for(const g of Object.keys(games)) for(const p in games[g]) for(const c in games[g][p]){
+      const camp = games[g][p][c];
+      if(camp.noData) continue;
+      totalCampaigns++; totalSpend += camp.totalCampaignSpend;
+      (camp.assets||[]).forEach(a=>{ totalInstances++; totalCreatives.add(a.asset_id); if(a.trend.label==='Picking up') up++; else perf++; });
+    }
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="n" style="color:var(--good)">${up}</div><div class="l">&#9650; Picking up</div></div>
+      <div class="stat"><div class="n" style="color:var(--accent)">${perf}</div><div class="l">&#9679; Performing</div></div>
+      <div class="stat"><div class="n">${totalCreatives.size}</div><div class="l">Distinct creatives</div></div>
+      <div class="stat"><div class="n">${fmtMoney(totalSpend)}</div><div class="l">Window spend audited</div></div>
+      <div class="stat"><div class="n">${totalCampaigns}</div><div class="l">Active campaigns</div></div>
+    `;
+
+    const allKeys = [...gameKeys, ...(games[specialKey]?[specialKey]:[])];
+    const prevSelected = gameNav.querySelector('[aria-selected="true"]')?.dataset.game;
+    gameNav.innerHTML = allKeys.map((g,i)=>{
+      let cnt=0; for(const p in games[g]) for(const c in games[g][p]) cnt += (games[g][p][c].assets||[]).length;
+      const selected = prevSelected ? g===prevSelected : i===0;
+      return `<button data-game="${g}" aria-selected="${selected}">${g} <span class="cnt">${cnt}</span></button>`;
+    }).join('');
+
+    sectionsEl.innerHTML = allKeys.map((g,gi)=>{
+      const platforms = games[g];
+      const isSelected = gameNav.querySelector(`[data-game="${CSS.escape(g)}"]`)?.getAttribute('aria-selected') === 'true';
+      const osHtml = Object.keys(platforms).sort().map(os=>{
+        const camps = platforms[os];
+        const campNames = Object.keys(camps);
+        const campsHtml = campNames.map((cn,ci)=>campaignHtml(cn, camps[cn], g.replace(/[^a-z0-9]/gi,''), gi===0 && ci===0, windowSpan)).join('');
+        return `<div class="os-group"><h2>${os} <span class="pill">${campNames.length} campaign${campNames.length>1?'s':''}</span></h2>${campsHtml}</div>`;
+      }).join('');
+      return `<section class="game" data-game="${g}" ${isSelected?'':'hidden'}>${osHtml}</section>`;
+    }).join('');
+
+    gameNav.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        gameNav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected','false'));
+        btn.setAttribute('aria-selected','true');
+        sectionsEl.querySelectorAll('section.game').forEach(s=>{ s.hidden = s.dataset.game !== btn.dataset.game; });
+      });
+    });
+
+    document.querySelectorAll('section.game').forEach(section=>{
+      const g = section.dataset.game;
+      const platforms = games[g];
+      section.querySelectorAll('details.campaign').forEach(det=>{
+        const campKey = det.dataset.camp;
+        if(!campKey) return;
+        for(const os in platforms){
+          for(const cn in platforms[os]){
+            if(cn.replace(/[^a-z0-9]/gi,'') === campKey){
+              const camp = platforms[os][cn];
+              (camp.assets||[]).forEach(a=>{
+                const cardEl = det.querySelector(`[data-asset-id="${a.asset_id}"]`);
+                if(cardEl) wireChart(cardEl, a.series, cardEl.querySelector('svg').id.replace('chart-',''));
+              });
+            }
+          }
+        }
+      });
+    });
+
+    renderMethodology();
+  }
+
+  async function loadAll(bust){
+    const q = bust ? `?t=${Date.now()}` : '';
+    const [dataRes, recentRes, metaRes] = await Promise.all([
+      fetch(`./final_data_active.json${q}`).then(r=>r.json()),
+      fetch(`./recent_creatives_final.json${q}`).then(r=>r.json()),
+      fetch(`./meta.json${q}`).then(r=>r.json()),
+    ]);
+    data = dataRes; recentData = recentRes; meta = metaRes;
+    document.getElementById('asOf').innerHTML = `Data as of <b>${timeAgo(meta.generatedAt)}</b> (${new Date(meta.generatedAt).toLocaleString()})`;
+    render();
+    renderRecentTable();
+  }
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  const toast = document.getElementById('refreshToast');
+  refreshBtn.addEventListener('click', async ()=>{
+    refreshBtn.disabled = true;
+    refreshBtn.classList.add('spinning');
+    toast.textContent = '';
+    try {
+      const prevGenAt = meta ? meta.generatedAt : null;
+      await loadAll(true);
+      toast.textContent = (meta.generatedAt !== prevGenAt) ? 'Updated with newer data.' : 'Already showing the latest published pull.';
+    } catch(e){
+      toast.textContent = 'Could not refresh: ' + e.message;
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.classList.remove('spinning');
+      setTimeout(()=>{ toast.textContent=''; }, 6000);
+    }
+  });
+
+  loadAll(false).catch(err=>{
+    document.getElementById('gameSections').innerHTML = '<p style="color:var(--muted)">Could not load creative data: '+err+'</p>';
+  });
+})();
+</script>
+</body>
+</html>

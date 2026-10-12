@@ -1,0 +1,46 @@
+name: Update creative dashboard data
+
+on:
+  schedule:
+    # 07:00 UTC daily — adjust to taste. Axon's data for "yesterday" is typically
+    # final by then; if numbers look incomplete, push this later in the day.
+    - cron: '0 7 * * *'
+  workflow_dispatch: {} # lets you click "Run workflow" in the Actions tab for an on-demand pull
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Pull Axon data and rebuild dashboard JSON
+        env:
+          AXON_MANAGEMENT_KEY: ${{ secrets.AXON_MANAGEMENT_KEY }}
+          AXON_REPORT_KEY: ${{ secrets.AXON_REPORT_KEY }}
+        run: node scripts/build.mjs
+
+      - name: Commit and push if anything changed
+        run: |
+          git config user.name "axon-dashboard-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Daily data refresh: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
